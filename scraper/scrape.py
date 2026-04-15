@@ -7,7 +7,8 @@ from collections import defaultdict
 from pathlib import Path
 
 from scraper.reverse_transfer import (
-    CC_PREDOMINANT_DEGREE,
+    CC_IPEDS_LEVEL,
+    CC_OWNERSHIP_PUBLIC,
     LETTERS,
     REQUEST_DELAY,
     get_equivalencies,
@@ -47,8 +48,13 @@ def scrape_all():
 
             rec = index.get(normalize_name(name))
             state = (rec or {}).get("state") or None
-            predominant = (rec or {}).get("predominant_degree")
-            is_cc = (predominant == CC_PREDOMINANT_DEGREE) if predominant is not None else None
+            if rec is not None:
+                is_cc = (
+                    rec.get("level") == CC_IPEDS_LEVEL
+                    and rec.get("ownership") == CC_OWNERSHIP_PUBLIC
+                )
+            else:
+                is_cc = None
 
             schools_by_code[code] = {
                 "code": code,

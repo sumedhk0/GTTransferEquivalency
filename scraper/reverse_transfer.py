@@ -15,9 +15,15 @@ REQUEST_DELAY = 0.3
 MAX_RETRIES = 2
 
 SCORECARD_URL = "https://api.data.gov/ed/collegescorecard/v1/schools"
-SCORECARD_CACHE = Path.home() / ".cache" / "reverse_transfer" / "scorecard.json"
+SCORECARD_SCHEMA_VERSION = 2
+SCORECARD_CACHE = (
+    Path.home() / ".cache" / "reverse_transfer" / f"scorecard_v{SCORECARD_SCHEMA_VERSION}.json"
+)
 SCORECARD_TTL_SECONDS = 30 * 24 * 60 * 60  # 30 days
-CC_PREDOMINANT_DEGREE = 2  # 2 = predominantly associate's (community college)
+# Community college = IPEDS level 2 (2-year institution) AND public ownership.
+CC_IPEDS_LEVEL = 2
+CC_OWNERSHIP_PUBLIC = 1
+CC_PREDOMINANT_DEGREE = 2  # kept for back-compat; no longer used for the CC check
 
 US_STATES = {
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
@@ -145,7 +151,12 @@ def normalize_name(name):
 
 
 def _fetch_scorecard_all(api_key):
-    fields = "id,school.name,school.state,school.degrees_awarded.predominant"
+    fields = (
+        "id,school.name,school.state,"
+        "school.degrees_awarded.predominant,"
+        "school.institutional_characteristics.level,"
+        "school.ownership"
+    )
     per_page = 100
     page = 0
     results = []
@@ -194,15 +205,18 @@ def load_scorecard_index():
     index = {}
     for rec in raw:
         name = rec.get("school.name") or ""
-        state = rec.get("school.state") or ""
-        predominant = rec.get("school.degrees_awarded.predominant")
         if not name:
             continue
         key = normalize_name(name)
         if not key:
             continue
         # First occurrence wins; duplicates are rare (multi-campus edge cases).
-        index.setdefault(key, {"state": state, "predominant_degree": predominant})
+        index.setdefault(key, {
+            "state": rec.get("school.state") or "",
+            "predominant_degree": rec.get("school.degrees_awarded.predominant"),
+            "level": rec.get("school.institutional_characteristics.level"),
+            "ownership": rec.get("school.ownership"),
+        })
 
     SCORECARD_CACHE.parent.mkdir(parents=True, exist_ok=True)
     with SCORECARD_CACHE.open("w", encoding="utf-8") as f:
@@ -219,7 +233,10 @@ def filter_schools(schools, index, state, cc_only, stats):
             continue
         if state and rec.get("state", "").upper() != state:
             continue
-        if cc_only and rec.get("predominant_degree") != CC_PREDOMINANT_DEGREE:
+        if cc_only and not (
+            rec.get("level") == CC_IPEDS_LEVEL
+            and rec.get("ownership") == CC_OWNERSHIP_PUBLIC
+        ):
             continue
         out.append((code, name))
     return out
