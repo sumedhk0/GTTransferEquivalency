@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GT Transfer Equivalencies</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Georgia Tech Transfer Equivalencies</h1>
+    <p class="sub">Search courses that transfer to GT. Data refreshes nightly from <a href="https://oscar.gatech.edu/pls/bprod/wwtraneq.P_TranEq_Nme">OSCAR</a>.</p>
+  </header>
+
+  <section class="controls">
+    <input id="q" type="search" placeholder="Search: GT course (e.g. APPH 1040), external course, or school name" autocomplete="off">
+    <label>State
+      <select id="state"><option value="">Any</option></select>
+    </label>
+    <label class="cc">
+      <input id="cc" type="checkbox"> Community colleges only
+    </label>
+  </section>
+
+  <p id="status" class="status">Loading…</p>
+
+  <table id="results">
+    <thead>
+      <tr>
+        <th>School</th>
+        <th>State</th>
+        <th>External Course</th>
+        <th>Course Title</th>
+        <th>GT Course</th>
+        <th>Credits</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <footer>
+    <span id="updated"></span> ·
+    <a href="https://github.com/">source</a>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
